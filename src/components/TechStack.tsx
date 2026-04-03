@@ -35,11 +35,10 @@ const imageUrls = [
   "/images/placeholder.webp",
 ];
 
-const sphereGeometry = new THREE.SphereGeometry(1, 20, 20); // Reduced segments from 28 to 20
-
-const spheres = [...Array(40)].map(() => ({
-  scale: [0.8, 1.1, 0.9, 1.2, 1.0][Math.floor(Math.random() * 5)],
-}));
+const getSpheres = (isMobile: boolean) => 
+  [...Array(isMobile ? 12 : 40)].map(() => ({
+    scale: [0.8, 1.1, 0.9, 1.2, 1.0][Math.floor(Math.random() * 5)],
+  }));
 
 type SphereProps = {
   vec?: THREE.Vector3;
@@ -55,7 +54,9 @@ function SphereGeo({
   r = THREE.MathUtils.randFloatSpread,
   material,
   isActive,
-}: SphereProps) {
+  sphereGeometry,
+  isMobile,
+}: SphereProps & { sphereGeometry: THREE.SphereGeometry; isMobile: boolean }) {
   const api = useRef<RapierRigidBody | null>(null);
 
   useFrame((_state, delta) => {
@@ -91,8 +92,8 @@ function SphereGeo({
         args={[0.15 * scale, 0.275 * scale]}
       />
       <mesh
-        castShadow
-        receiveShadow
+        castShadow={!isMobile}
+        receiveShadow={!isMobile}
         scale={scale}
         geometry={sphereGeometry}
         material={material}
@@ -135,8 +136,10 @@ function Pointer({ vec = new THREE.Vector3(), isActive }: PointerProps) {
   );
 }
 
-const Scene = ({ isActive }: { isActive: boolean }) => {
+const Scene = ({ isActive, isMobile, sphereGeometry }: { isActive: boolean; isMobile: boolean; sphereGeometry: THREE.SphereGeometry }) => {
   const textures = useTexture(imageUrls);
+
+  const spheres = useMemo(() => getSpheres(isMobile), [isMobile]);
 
   const materials = useMemo(() => {
     return textures.map((texture) => {
@@ -149,10 +152,10 @@ const Scene = ({ isActive }: { isActive: boolean }) => {
         emissiveIntensity: 0.3,
         metalness: 0.5,
         roughness: 1,
-        clearcoat: 0.1,
+        clearcoat: isMobile ? 0 : 0.1,
       });
     });
-  }, [textures]);
+  }, [textures, isMobile]);
 
   return (
     <Physics gravity={[0, 0, 0]}>
@@ -163,6 +166,8 @@ const Scene = ({ isActive }: { isActive: boolean }) => {
           {...props}
           material={materials[Math.floor(Math.random() * materials.length)]}
           isActive={isActive}
+          sphereGeometry={sphereGeometry}
+          isMobile={isMobile}
         />
       ))}
     </Physics>
@@ -171,6 +176,20 @@ const Scene = ({ isActive }: { isActive: boolean }) => {
 
 const TechStack = () => {
   const [isActive, setIsActive] = useState(true);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const sphereGeometry = useMemo(() => 
+    new THREE.SphereGeometry(1, isMobile ? 14 : 20, isMobile ? 14 : 20),
+  [isMobile]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -204,8 +223,9 @@ const TechStack = () => {
       <h2> My Techstack</h2>
 
       <Canvas
-        shadows
-        gl={{ alpha: true, stencil: false, depth: false, antialias: false }}
+        shadows={!isMobile}
+        dpr={[1, 2]}
+        gl={{ alpha: true, stencil: false, depth: false, antialias: !isMobile }}
         camera={{ position: [0, 0, 20], fov: 32.5, near: 1, far: 1000 }}
         onCreated={(state) => {
           state.gl.toneMappingExposure = 1.5;
@@ -222,13 +242,13 @@ const TechStack = () => {
           penumbra={1}
           angle={0.2}
           color="white"
-          castShadow
-          shadow-mapSize={[512, 512]}
+          castShadow={!isMobile}
+          shadow-mapSize={isMobile ? [256, 256] : [512, 512]}
         />
         <directionalLight position={[0, 5, -4]} intensity={2} />
-        <Stars radius={10} depth={50} count={2000} factor={4} saturation={0} fade speed={1} />
+        <Stars radius={10} depth={50} count={isMobile ? 400 : 2000} factor={4} saturation={0} fade speed={1} />
         <Suspense fallback={null}>
-          <Scene isActive={isActive} />
+          <Scene isActive={isActive} isMobile={isMobile} sphereGeometry={sphereGeometry} />
         </Suspense>
         {/* <Environment
           files="/models/char_enviorment.hdr"
@@ -236,9 +256,11 @@ const TechStack = () => {
           environmentRotation={[0, 4, 2]}
         /> */}
         {/* Environment disabled as model might not exist, replace if you add asset. */}
-        <EffectComposer enableNormalPass={false}>
-          <N8AO color="#0f002c" aoRadius={2} intensity={1.15} />
-        </EffectComposer>
+        {!isMobile && (
+          <EffectComposer enableNormalPass={false}>
+            <N8AO color="#0f002c" aoRadius={2} intensity={1.15} />
+          </EffectComposer>
+        )}
       </Canvas>
       <div className="tech-fade-bottom" />
     </div>

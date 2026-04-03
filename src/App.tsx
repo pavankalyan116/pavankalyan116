@@ -20,9 +20,11 @@ function AppContent() {
     return () => clear();
   }, []);
 
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+
   return (
     <>
-      <Cursor />
+      {!isMobile && <Cursor />}
       {isLoading && <Loading percent={percent} />}
       <div className="flex flex-col min-h-screen">
         <Navbar />
