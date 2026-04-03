@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { useRef, useMemo, useState, useEffect } from "react";
+import { useRef, useMemo, useState, useEffect, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Stars } from "@react-three/drei";
+import { Stars, useTexture } from "@react-three/drei";
 import { EffectComposer, N8AO } from "@react-three/postprocessing";
 import {
   BallCollider,
@@ -11,7 +11,7 @@ import {
   RapierRigidBody,
 } from "@react-three/rapier";
 
-const textureLoader = new THREE.TextureLoader();
+
 const imageUrls = [
   "/images/react.webp",
   "/images/react2.webp",
@@ -34,14 +34,8 @@ const imageUrls = [
   "/images/git.webp",
   "/images/placeholder.webp",
 ];
-const textures = imageUrls.map((url) => {
-  const texture = textureLoader.load(url);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.repeat.set(2, 1);
-  return texture;
-});
 
-const sphereGeometry = new THREE.SphereGeometry(1, 28, 28);
+const sphereGeometry = new THREE.SphereGeometry(1, 20, 20); // Reduced segments from 28 to 20
 
 const spheres = [...Array(40)].map(() => ({
   scale: [0.8, 1.1, 0.9, 1.2, 1.0][Math.floor(Math.random() * 5)],
@@ -65,10 +59,10 @@ function SphereGeo({
   const api = useRef<RapierRigidBody | null>(null);
 
   useFrame((_state, delta) => {
-    if (!isActive) return;
+    if (!isActive || !api.current) return;
     delta = Math.min(0.1, delta);
     const impulse = vec
-      .copy(api.current!.translation())
+      .copy(api.current.translation())
       .normalize()
       .multiply(
         new THREE.Vector3(
@@ -117,7 +111,7 @@ function Pointer({ vec = new THREE.Vector3(), isActive }: PointerProps) {
   const ref = useRef<RapierRigidBody>(null);
 
   useFrame(({ pointer, viewport }) => {
-    if (!isActive) return;
+    if (!isActive || !ref.current) return;
     const targetVec = vec.lerp(
       new THREE.Vector3(
         (pointer.x * viewport.width) / 2,
@@ -126,7 +120,7 @@ function Pointer({ vec = new THREE.Vector3(), isActive }: PointerProps) {
       ),
       0.2
     );
-    ref.current?.setNextKinematicTranslation(targetVec);
+    ref.current.setNextKinematicTranslation(targetVec);
   });
 
   return (
@@ -141,8 +135,42 @@ function Pointer({ vec = new THREE.Vector3(), isActive }: PointerProps) {
   );
 }
 
+const Scene = ({ isActive }: { isActive: boolean }) => {
+  const textures = useTexture(imageUrls);
+
+  const materials = useMemo(() => {
+    return textures.map((texture) => {
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.repeat.set(2, 1);
+      return new THREE.MeshPhysicalMaterial({
+        map: texture,
+        emissive: "#ffffff",
+        emissiveMap: texture,
+        emissiveIntensity: 0.3,
+        metalness: 0.5,
+        roughness: 1,
+        clearcoat: 0.1,
+      });
+    });
+  }, [textures]);
+
+  return (
+    <Physics gravity={[0, 0, 0]}>
+      <Pointer isActive={isActive} />
+      {spheres.map((props, i) => (
+        <SphereGeo
+          key={i}
+          {...props}
+          material={materials[Math.floor(Math.random() * materials.length)]}
+          isActive={isActive}
+        />
+      ))}
+    </Physics>
+  );
+};
+
 const TechStack = () => {
-  const [isActive, setIsActive] = useState(true); // Default rendering to true if 'work' element isn't present
+  const [isActive, setIsActive] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -170,21 +198,6 @@ const TechStack = () => {
     };
   }, []);
 
-  const materials = useMemo(() => {
-    return textures.map(
-      (texture) =>
-        new THREE.MeshPhysicalMaterial({
-          map: texture,
-          emissive: "#ffffff",
-          emissiveMap: texture,
-          emissiveIntensity: 0.3,
-          metalness: 0.5,
-          roughness: 1,
-          clearcoat: 0.1,
-        })
-    );
-  }, []);
-
   return (
     <div className="techstack" id="skills">
       <div className="tech-fade-top" />
@@ -194,7 +207,13 @@ const TechStack = () => {
         shadows
         gl={{ alpha: true, stencil: false, depth: false, antialias: false }}
         camera={{ position: [0, 0, 20], fov: 32.5, near: 1, far: 1000 }}
-        onCreated={(state) => (state.gl.toneMappingExposure = 1.5)}
+        onCreated={(state) => {
+          state.gl.toneMappingExposure = 1.5;
+          // Ensure XR is disabled to prevent permission prompts on mobile
+          if ((state.gl as any).xr) {
+            (state.gl as any).xr.enabled = false;
+          }
+        }}
         className="tech-canvas"
       >
         <ambientLight intensity={1} />
@@ -208,17 +227,9 @@ const TechStack = () => {
         />
         <directionalLight position={[0, 5, -4]} intensity={2} />
         <Stars radius={10} depth={50} count={2000} factor={4} saturation={0} fade speed={1} />
-        <Physics gravity={[0, 0, 0]}>
-          <Pointer isActive={isActive} />
-          {spheres.map((props, i) => (
-            <SphereGeo
-              key={i}
-              {...props}
-              material={materials[Math.floor(Math.random() * materials.length)]}
-              isActive={isActive}
-            />
-          ))}
-        </Physics>
+        <Suspense fallback={null}>
+          <Scene isActive={isActive} />
+        </Suspense>
         {/* <Environment
           files="/models/char_enviorment.hdr"
           environmentIntensity={0.5}

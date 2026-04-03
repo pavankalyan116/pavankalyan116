@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import Hero from '../components/Hero';
 import About from '../components/About';
-import TechStack from '../components/TechStack';
-import Projects from '../components/Projects';
 import Contact from '../components/Contact';
+
+const TechStack = lazy(() => import('../components/TechStack'));
+const Projects = lazy(() => import('../components/Projects'));
 
 const Home = () => {
   useEffect(() => {
@@ -14,8 +15,12 @@ const Home = () => {
     <div className="w-full">
       <Hero />
       <About />
-      <TechStack />
-      <Projects />
+      <Suspense fallback={<div className="h-96 flex items-center justify-center text-primary-500">Loading Tech Stack...</div>}>
+        <TechStack />
+      </Suspense>
+      <Suspense fallback={<div className="h-96 flex items-center justify-center text-primary-500">Loading Projects...</div>}>
+        <Projects />
+      </Suspense>
       <Contact />
     </div>
   );

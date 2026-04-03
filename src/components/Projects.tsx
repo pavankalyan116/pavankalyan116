@@ -23,7 +23,7 @@ const Projects = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/projects');
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/projects`);
         if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
         setProjects(data);

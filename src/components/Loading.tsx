@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./styles/Loading.css";
 import { useLoading } from "../context/LoadingProvider";
 import MarqueeComponent from "react-fast-marquee";
+import * as THREE from "three";
 const Marquee = (MarqueeComponent as any).default || MarqueeComponent;
 
 const Loading = ({ percent }: { percent: number }) => {
@@ -89,41 +90,44 @@ export default Loading;
 
 export const setProgress = (setLoading: (value: number) => void) => {
   let percent: number = 0;
-
-  let interval = setInterval(() => {
-    if (percent <= 50) {
-      let rand = Math.round(Math.random() * 5);
-      percent = percent + rand;
+  
+  // Track actual Three.js asset loading
+  THREE.DefaultLoadingManager.onProgress = (_url, itemsLoaded, itemsTotal) => {
+    const p = Math.floor((itemsLoaded / itemsTotal) * 100);
+    if (p > percent) {
+      percent = p;
       setLoading(percent);
+    }
+  };
+
+  // Fallback interval to ensure progress at least shows movement
+  let interval = setInterval(() => {
+    if (percent < 90) {
+      percent += Math.random() * 2;
+      setLoading(Math.floor(percent));
     } else {
       clearInterval(interval);
-      interval = setInterval(() => {
-        percent = percent + Math.round(Math.random());
-        setLoading(percent);
-        if (percent > 91) {
-          clearInterval(interval);
-        }
-      }, 2000);
     }
-  }, 100);
+  }, 200);
 
   function clear() {
     clearInterval(interval);
+    THREE.DefaultLoadingManager.onProgress = () => {};
     setLoading(100);
   }
 
   function loaded() {
     return new Promise<number>((resolve) => {
       clearInterval(interval);
-      interval = setInterval(() => {
+      const finishInterval = setInterval(() => {
         if (percent < 100) {
-          percent++;
-          setLoading(percent);
+          percent += 5;
+          setLoading(Math.min(100, Math.floor(percent)));
         } else {
-          resolve(percent);
-          clearInterval(interval);
+          resolve(100);
+          clearInterval(finishInterval);
         }
-      }, 2);
+      }, 10);
     });
   }
   return { loaded, percent, clear };
