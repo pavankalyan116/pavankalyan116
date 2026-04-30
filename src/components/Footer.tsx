@@ -1,9 +1,34 @@
-import { Mail } from 'lucide-react';
-import { FaGithub, FaLinkedin, FaTwitter } from 'react-icons/fa';
+import React from "react";
+import { Mail } from "lucide-react";
+import { FaGithub, FaLinkedin, FaTwitter } from "react-icons/fa";
 
-const Footer = () => {
-  const currentYear = new Date().getFullYear();
-  
+// Constants
+const CURRENT_YEAR = new Date().getFullYear();
+
+const SOCIAL_LINKS = [
+  {
+    href: "https://github.com/pavankalyan116",
+    label: "GitHub",
+    icon: <FaGithub size={20} />,
+  },
+  {
+    href: "https://www.linkedin.com/in/pavankalyan-kotakommulaommula-226572210",
+    label: "LinkedIn",
+    icon: <FaLinkedin size={20} />,
+  },
+  {
+    href: "https://x.com/pavankalyan166",
+    label: "X (Twitter)",
+    icon: <FaTwitter size={20} />,
+  },
+  {
+    href: "mailto:kspkalyan116@gmail.com",
+    label: "Email",
+    icon: <Mail size={20} />,
+  },
+];
+
+const Footer = React.memo((): React.ReactElement => {
   return (
     <footer className="glass-card mt-20 py-8 border-t border-border-color">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -13,28 +38,30 @@ const Footer = () => {
               Portfolio
             </h3>
             <p className="text-sm mt-1 text-gray-700 dark:text-gray-400">
-              © {currentYear} All rights reserved.
+              © {CURRENT_YEAR} All rights reserved.
             </p>
           </div>
-          
+
           <div className="flex gap-4">
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
-              <FaGithub size={20} />
-            </a>
-            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
-              <FaLinkedin size={20} />
-            </a>
-            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
-              <FaTwitter size={20} />
-            </a>
-            <a href="mailto:contact@example.com" className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
-              <Mail size={20} />
-            </a>
+            {SOCIAL_LINKS.map(({ href, label, icon }) => (
+              <a
+                key={label}
+                href={href}
+                target={href.startsWith("mailto") ? undefined : "_blank"}
+                rel={href.startsWith("mailto") ? undefined : "noopener noreferrer"}
+                aria-label={label}
+                className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+              >
+                {icon}
+              </a>
+            ))}
           </div>
         </div>
       </div>
     </footer>
   );
-};
+});
 
-export default Footer;
+Footer.displayName = "Footer";
+
+export { Footer };

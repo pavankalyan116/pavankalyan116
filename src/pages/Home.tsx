@@ -1,18 +1,22 @@
-import { useEffect, lazy, Suspense } from 'react';
-import Hero from '../components/Hero';
-import About from '../components/About';
-import Contact from '../components/Contact';
+import React, { useEffect, lazy, Suspense } from "react";
+import { Hero } from "../components/Hero";
+import { About } from "../components/About";
+import { Contact } from "../components/Contact";
 
-const TechStack = lazy(() => import('../components/TechStack'));
-const Projects = lazy(() => import('../components/Projects'));
+const TechStack = lazy(() =>
+  import("../components/TechStack").then((m) => ({ default: m.TechStack })),
+);
+const Projects = lazy(() =>
+  import("../components/Projects").then((m) => ({ default: m.Projects })),
+);
 
-const Home = () => {
+const Home = React.memo((): React.ReactElement => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   return (
-    <div className="w-full">
+    <main className="w-full">
       <Hero />
       <About />
       <Suspense fallback={<div className="h-96 flex items-center justify-center text-primary-500">Loading Tech Stack...</div>}>
@@ -22,8 +26,10 @@ const Home = () => {
         <Projects />
       </Suspense>
       <Contact />
-    </div>
+    </main>
   );
-};
+});
 
-export default Home;
+Home.displayName = "Home";
+
+export { Home };

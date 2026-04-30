@@ -409,3 +409,18 @@
     font-size: 18px;
   }
 }
+
+@media only screen and (max-width: 600px) {
+  .loading-marquee {
+    font-size: 36px;
+  }
+  
+  .loading-wrap {
+    --Lsize: 110px;
+  }
+  
+  .loading-button {
+    padding: 15px 30px;
+    font-size: 14px;
+  }
+}

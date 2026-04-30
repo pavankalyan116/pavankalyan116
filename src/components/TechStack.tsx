@@ -1,5 +1,5 @@
+import React, { useRef, useMemo, useState, useEffect, Suspense } from "react";
 import * as THREE from "three";
-import { useRef, useMemo, useState, useEffect, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Stars, useTexture } from "@react-three/drei";
 import { EffectComposer, N8AO } from "@react-three/postprocessing";
@@ -11,8 +11,8 @@ import {
   RapierRigidBody,
 } from "@react-three/rapier";
 
-
-const imageUrls = [
+// Constants
+const IMAGE_URLS: string[] = [
   "/images/react.webp",
   "/images/react2.webp",
   "/images/next.webp",
@@ -32,23 +32,48 @@ const imageUrls = [
   "/images/java.webp",
   "/images/cpp.webp",
   "/images/git.webp",
-  "/images/placeholder.webp",
 ];
 
-const getSpheres = (isMobile: boolean) => 
-  [...Array(isMobile ? 12 : 40)].map(() => ({
-    scale: [0.8, 1.1, 0.9, 1.2, 1.0][Math.floor(Math.random() * 5)],
-  }));
+const MOBILE_SPHERE_COUNT = 12;
+const DESKTOP_SPHERE_COUNT = 40;
+const MOBILE_BREAKPOINT = 768;
 
-type SphereProps = {
+const SPHERE_SCALES = [0.8, 1.1, 0.9, 1.2, 1.0];
+
+// Types
+interface TSphereData {
+  scale: number;
+}
+
+interface TSphereProps {
   vec?: THREE.Vector3;
   scale: number;
   r?: typeof THREE.MathUtils.randFloatSpread;
   material: THREE.MeshPhysicalMaterial;
   isActive: boolean;
-};
+  sphereGeometry: THREE.SphereGeometry;
+  isMobile: boolean;
+}
 
-function SphereGeo({
+interface TPointerProps {
+  vec?: THREE.Vector3;
+  isActive: boolean;
+}
+
+interface TSceneProps {
+  isActive: boolean;
+  isMobile: boolean;
+  sphereGeometry: THREE.SphereGeometry;
+}
+
+// Helper functions
+const getSpheres = (isMobile: boolean): TSphereData[] =>
+  [...Array(isMobile ? MOBILE_SPHERE_COUNT : DESKTOP_SPHERE_COUNT)].map(() => ({
+    scale: SPHERE_SCALES[Math.floor(Math.random() * SPHERE_SCALES.length)],
+  }));
+
+// Inner components
+const SphereGeo = ({
   vec = new THREE.Vector3(),
   scale,
   r = THREE.MathUtils.randFloatSpread,
@@ -56,23 +81,22 @@ function SphereGeo({
   isActive,
   sphereGeometry,
   isMobile,
-}: SphereProps & { sphereGeometry: THREE.SphereGeometry; isMobile: boolean }) {
+}: TSphereProps): React.ReactElement => {
   const api = useRef<RapierRigidBody | null>(null);
 
   useFrame((_state, delta) => {
     if (!isActive || !api.current) return;
-    delta = Math.min(0.1, delta);
+    const clampedDelta = Math.min(0.1, delta);
     const impulse = vec
       .copy(api.current.translation())
       .normalize()
       .multiply(
         new THREE.Vector3(
-          -50 * delta * scale,
-          -150 * delta * scale,
-          -50 * delta * scale
-        )
+          -50 * clampedDelta * scale,
+          -150 * clampedDelta * scale,
+          -50 * clampedDelta * scale,
+        ),
       );
-
     api.current?.applyImpulse(impulse, true);
   });
 
@@ -101,14 +125,11 @@ function SphereGeo({
       />
     </RigidBody>
   );
-}
-
-type PointerProps = {
-  vec?: THREE.Vector3;
-  isActive: boolean;
 };
 
-function Pointer({ vec = new THREE.Vector3(), isActive }: PointerProps) {
+SphereGeo.displayName = "SphereGeo";
+
+const Pointer = ({ vec = new THREE.Vector3(), isActive }: TPointerProps): React.ReactElement => {
   const ref = useRef<RapierRigidBody>(null);
 
   useFrame(({ pointer, viewport }) => {
@@ -117,27 +138,24 @@ function Pointer({ vec = new THREE.Vector3(), isActive }: PointerProps) {
       new THREE.Vector3(
         (pointer.x * viewport.width) / 2,
         (pointer.y * viewport.height) / 2,
-        0
+        0,
       ),
-      0.2
+      0.2,
     );
     ref.current.setNextKinematicTranslation(targetVec);
   });
 
   return (
-    <RigidBody
-      position={[100, 100, 100]}
-      type="kinematicPosition"
-      colliders={false}
-      ref={ref}
-    >
+    <RigidBody position={[100, 100, 100]} type="kinematicPosition" colliders={false} ref={ref}>
       <BallCollider args={[2]} />
     </RigidBody>
   );
-}
+};
 
-const Scene = ({ isActive, isMobile, sphereGeometry }: { isActive: boolean; isMobile: boolean; sphereGeometry: THREE.SphereGeometry }) => {
-  const textures = useTexture(imageUrls);
+Pointer.displayName = "Pointer";
+
+const Scene = ({ isActive, isMobile, sphereGeometry }: TSceneProps): React.ReactElement => {
+  const textures = useTexture(IMAGE_URLS);
 
   const spheres = useMemo(() => getSpheres(isMobile), [isMobile]);
 
@@ -174,22 +192,25 @@ const Scene = ({ isActive, isMobile, sphereGeometry }: { isActive: boolean; isMo
   );
 };
 
-const TechStack = () => {
+Scene.displayName = "Scene";
+
+const TechStack = React.memo((): React.ReactElement => {
   const [isActive, setIsActive] = useState(true);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" ? window.innerWidth < MOBILE_BREAKPOINT : false,
+  );
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    const checkMobile = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const sphereGeometry = useMemo(() => 
-    new THREE.SphereGeometry(1, isMobile ? 14 : 20, isMobile ? 14 : 20),
-  [isMobile]);
+  const sphereGeometry = useMemo(
+    () => new THREE.SphereGeometry(1, isMobile ? 14 : 20, isMobile ? 14 : 20),
+    [isMobile],
+  );
 
   useEffect(() => {
     const handleScroll = () => {
@@ -200,27 +221,23 @@ const TechStack = () => {
         setIsActive(scrollY > threshold);
       }
     };
+
     document.querySelectorAll(".header a").forEach((elem) => {
       const element = elem as HTMLAnchorElement;
       element.addEventListener("click", () => {
-        const interval = setInterval(() => {
-          handleScroll();
-        }, 10);
-        setTimeout(() => {
-          clearInterval(interval);
-        }, 1000);
+        const interval = setInterval(handleScroll, 10);
+        setTimeout(() => clearInterval(interval), 1000);
       });
     });
+
     window.addEventListener("scroll", handleScroll);
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
     <div className="techstack" id="skills">
       <div className="tech-fade-top" />
-      <h2> My Techstack</h2>
+      <h2>My Techstack</h2>
 
       <Canvas
         shadows={!isMobile}
@@ -229,7 +246,6 @@ const TechStack = () => {
         camera={{ position: [0, 0, 20], fov: 32.5, near: 1, far: 1000 }}
         onCreated={(state) => {
           state.gl.toneMappingExposure = 1.5;
-          // Ensure XR is disabled to prevent permission prompts on mobile
           if ((state.gl as any).xr) {
             (state.gl as any).xr.enabled = false;
           }
@@ -250,12 +266,6 @@ const TechStack = () => {
         <Suspense fallback={null}>
           <Scene isActive={isActive} isMobile={isMobile} sphereGeometry={sphereGeometry} />
         </Suspense>
-        {/* <Environment
-          files="/models/char_enviorment.hdr"
-          environmentIntensity={0.5}
-          environmentRotation={[0, 4, 2]}
-        /> */}
-        {/* Environment disabled as model might not exist, replace if you add asset. */}
         {!isMobile && (
           <EffectComposer enableNormalPass={false}>
             <N8AO color="#0f002c" aoRadius={2} intensity={1.15} />
@@ -265,6 +275,8 @@ const TechStack = () => {
       <div className="tech-fade-bottom" />
     </div>
   );
-};
+});
 
-export default TechStack;
+TechStack.displayName = "TechStack";
+
+export { TechStack };

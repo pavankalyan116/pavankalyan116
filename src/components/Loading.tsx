@@ -1,11 +1,17 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import "./styles/Loading.css";
 import { useLoading } from "../context/LoadingProvider";
 import MarqueeComponent from "react-fast-marquee";
 import * as THREE from "three";
+
 const Marquee = (MarqueeComponent as any).default || MarqueeComponent;
 
-const Loading = ({ percent }: { percent: number }) => {
+// Types
+interface TLoadingProps {
+  percent: number;
+}
+
+const Loading = React.memo(({ percent }: TLoadingProps): React.ReactElement => {
   const { setIsLoading } = useLoading();
   const [loaded, setLoaded] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -27,16 +33,16 @@ const Loading = ({ percent }: { percent: number }) => {
         setIsLoading(false);
       }, 900);
     }
-  }, [isLoaded]);
+  }, [isLoaded, setIsLoading]);
 
-  function handleMouseMove(e: React.MouseEvent<HTMLElement>) {
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
     const { currentTarget: target } = e;
     const rect = target.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     target.style.setProperty("--mouse-x", `${x}px`);
     target.style.setProperty("--mouse-y", `${y}px`);
-  }
+  }, []);
 
   return (
     <>
@@ -64,7 +70,7 @@ const Loading = ({ percent }: { percent: number }) => {
         </div>
         <div
           className={`loading-wrap ${clicked ? "loading-clicked" : ""}`}
-          onMouseMove={(e) => handleMouseMove(e)}
+          onMouseMove={handleMouseMove}
         >
           <div className="loading-hover"></div>
           <div className={`loading-button ${loaded ? "loading-complete" : ""}`}>
@@ -84,13 +90,15 @@ const Loading = ({ percent }: { percent: number }) => {
       </div>
     </>
   );
-};
+});
 
-export default Loading;
+Loading.displayName = "Loading";
+
+export { Loading };
 
 export const setProgress = (setLoading: (value: number) => void) => {
   let percent: number = 0;
-  
+
   // Track actual Three.js asset loading
   THREE.DefaultLoadingManager.onProgress = (_url, itemsLoaded, itemsTotal) => {
     const p = Math.floor((itemsLoaded / itemsTotal) * 100);
@@ -101,7 +109,7 @@ export const setProgress = (setLoading: (value: number) => void) => {
   };
 
   // Fallback interval to ensure progress at least shows movement
-  let interval = setInterval(() => {
+  const interval = setInterval(() => {
     if (percent < 90) {
       percent += Math.random() * 2;
       setLoading(Math.floor(percent));
@@ -110,13 +118,13 @@ export const setProgress = (setLoading: (value: number) => void) => {
     }
   }, 200);
 
-  function clear() {
+  const clear = () => {
     clearInterval(interval);
     THREE.DefaultLoadingManager.onProgress = () => {};
     setLoading(100);
-  }
+  };
 
-  function loaded() {
+  const loaded = () => {
     return new Promise<number>((resolve) => {
       clearInterval(interval);
       const finishInterval = setInterval(() => {
@@ -129,6 +137,7 @@ export const setProgress = (setLoading: (value: number) => void) => {
         }
       }, 10);
     });
-  }
+  };
+
   return { loaded, percent, clear };
 };

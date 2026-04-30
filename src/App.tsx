@@ -1,26 +1,30 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import Home from './pages/Home';
-import { LoadingProvider, useLoading } from './context/LoadingProvider';
-import Loading, { setProgress } from './components/Loading';
-import Cursor from './components/Cursor';
+import React, { useState, useEffect, useMemo } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Navbar } from "./components/Navbar";
+import { Footer } from "./components/Footer";
+import { Home } from "./pages/Home";
+import { LoadingProvider, useLoading } from "./context/LoadingProvider";
+import { Loading, setProgress } from "./components/Loading";
+import { Cursor } from "./components/Cursor";
 
-function AppContent() {
+const MOBILE_BREAKPOINT = 768;
+
+const AppContent = React.memo((): React.ReactElement => {
   const { isLoading } = useLoading();
   const [percent, setPercent] = useState(0);
 
+  const isMobile = useMemo(
+    () => (typeof window !== "undefined" ? window.innerWidth < MOBILE_BREAKPOINT : false),
+    [],
+  );
+
   useEffect(() => {
     const { loaded, clear } = setProgress(setPercent);
-    // Let it finish loading naturally
     loaded().then(() => {
       // Load complete
     });
     return () => clear();
   }, []);
-
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
 
   return (
     <>
@@ -37,9 +41,11 @@ function AppContent() {
       </div>
     </>
   );
-}
+});
 
-function App() {
+AppContent.displayName = "AppContent";
+
+const App = (): React.ReactElement => {
   return (
     <LoadingProvider>
       <Router>
@@ -47,6 +53,8 @@ function App() {
       </Router>
     </LoadingProvider>
   );
-}
+};
+
+App.displayName = "App";
 
 export default App;

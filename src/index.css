@@ -65,7 +65,14 @@
 
 @media screen and (max-width: 900px) {
   .techstack h2 {
-    font-size: 40px;
+    font-size: 48px;
+    top: 15vh;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .techstack h2 {
+    font-size: 32px;
     top: 20vh;
   }
 }
