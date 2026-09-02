@@ -6,6 +6,7 @@ import { Home } from "./pages/Home";
 import { LoadingProvider, useLoading } from "./context/LoadingProvider";
 import { Loading, setProgress } from "./components/Loading";
 import { Cursor } from "./components/Cursor";
+import { Chatbot } from "./components/Chatbot";
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -38,6 +39,7 @@ const AppContent = React.memo((): React.ReactElement => {
           </Routes>
         </main>
         <Footer />
+        <Chatbot />
       </div>
     </>
   );
