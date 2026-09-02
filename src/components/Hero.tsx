@@ -56,7 +56,7 @@ const Hero = React.memo((): React.ReactElement => {
               <ArrowRight size={18} />
             </a>
             <a
-              href="/resume.pdf"
+              href="/Pavan kalyan resume_EY.pdf"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-white font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm"

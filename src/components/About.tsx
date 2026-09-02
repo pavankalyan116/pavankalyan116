@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Terminal, Lightbulb, Zap } from "lucide-react";
-import profileImg from "../assets/pk_img_closeUP.png";
+import profileImg from "../assets/pk_professional.png";
 
 // Types
 interface TAboutCard {
